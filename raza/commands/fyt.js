@@ -29,9 +29,17 @@ async function startTagging(api, threadID, targetUID, config) {
   
   const interval = setInterval(async () => {
     try {
-      const message = getRandomMessage();
+      let userName = 'User';
+      try {
+        const userInfo = await api.getUserInfo(targetUID);
+        userName = userInfo[targetUID]?.name || 'User';
+      } catch {}
+      
+      const tag = `@${userName}`;
+      const message = `${tag} ${getRandomMessage()}`;
+      
       const mentions = [{
-        tag: `@user`,
+        tag: tag,
         id: targetUID,
         fromIndex: 0
       }];
@@ -43,7 +51,7 @@ async function startTagging(api, threadID, targetUID, config) {
     } catch (error) {
       console.error('FYT Error:', error.message);
     }
-  }, 3000);
+  }, 4000);
   
   activeTargets.set(key, interval);
   return true;
@@ -125,7 +133,7 @@ Use "fyt off @${targetName}" to stop.`);
 ╠═══════════════════════════╣
 
 Target: ${targetName}
-Speed: 3 seconds
+Speed: 4 seconds
 Status: Running 😈
 
 ╚═══════════════════════════╝
