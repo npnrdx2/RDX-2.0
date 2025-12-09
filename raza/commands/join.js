@@ -2,7 +2,7 @@ module.exports = {
   config: {
     name: 'join',
     aliases: ['groups', 'joingroup'],
-    description: 'Show groups where bot is added, join by number',
+    description: 'Show groups where bot is added (excludes left groups), join by number',
     usage: 'join [number]',
     category: 'Admin',
     adminOnly: true,
@@ -17,30 +17,41 @@ module.exports = {
     }
     
     const allThreads = Threads.getAll();
+    const activeThreads = [];
     
-    if (allThreads.length === 0) {
-      return send.reply('No groups found in database.');
+    await send.reply('Checking active groups...');
+    
+    for (const thread of allThreads) {
+      try {
+        const info = await api.getThreadInfo(thread.id);
+        if (info && info.participantIDs) {
+          const botID = api.getCurrentUserID();
+          if (info.participantIDs.includes(botID)) {
+            activeThreads.push({
+              ...thread,
+              name: info.threadName || info.name || thread.name || 'Unknown'
+            });
+          }
+        }
+      } catch (err) {
+      }
+      await new Promise(r => setTimeout(r, 500));
+    }
+    
+    if (activeThreads.length === 0) {
+      return send.reply('No active groups found.');
     }
     
     if (!args[0]) {
-      let msg = `GROUPS LIST (${allThreads.length})
+      let msg = `ACTIVE GROUPS (${activeThreads.length})
 ═══════════════════════\n\n`;
       
-      for (let i = 0; i < allThreads.length; i++) {
-        const thread = allThreads[i];
-        let name = thread.name || 'Unknown';
-        
-        if (!name || name === 'Unknown') {
-          try {
-            const info = await api.getThreadInfo(thread.id);
-            name = info.threadName || info.name || 'Unknown';
-          } catch {}
-        }
-        
-        const approved = thread.approved === 1 ? '✓' : '✗';
+      for (let i = 0; i < activeThreads.length; i++) {
+        const thread = activeThreads[i];
+        const approved = thread.approved === 1 ? '' : '';
         const banned = thread.banned === 1 ? ' (BANNED)' : '';
         
-        msg += `${i + 1}. ${name}${banned}
+        msg += `${i + 1}. ${thread.name}${banned}
    Approved: ${approved}
    TID: ${thread.id}
 ─────────────────\n`;
@@ -54,7 +65,7 @@ module.exports = {
         global.client.replies.set(sentMsg.messageID, {
           commandName: 'join',
           author: senderID,
-          threads: allThreads,
+          threads: activeThreads,
           type: 'select'
         });
       }
@@ -64,11 +75,11 @@ module.exports = {
     
     const num = parseInt(args[0]);
     
-    if (isNaN(num) || num < 1 || num > allThreads.length) {
-      return send.reply(`Invalid number. Please choose between 1 and ${allThreads.length}.`);
+    if (isNaN(num) || num < 1 || num > activeThreads.length) {
+      return send.reply(`Invalid number. Please choose between 1 and ${activeThreads.length}.`);
     }
     
-    const selectedThread = allThreads[num - 1];
+    const selectedThread = activeThreads[num - 1];
     
     try {
       await api.sendMessage(`Bot admin joined this group.`, selectedThread.id);

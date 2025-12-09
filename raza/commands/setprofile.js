@@ -1,5 +1,3 @@
-
-
 const axios = require('axios');
 const fs = require('fs-extra');
 const path = require('path');
@@ -32,13 +30,13 @@ module.exports = {
       return send.reply('Please reply to an image (not video, file, etc).');
     }
     
-    const imageUrl = attachment.url;
+    let imageUrl = attachment.url || attachment.largePreviewUrl || attachment.previewUrl;
     
-    if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
-      return send.reply('❌ Invalid image URL. Please try replying to a different image.');
+    if (!imageUrl || typeof imageUrl !== 'string') {
+      return send.reply('Could not get image URL. Please try with a different image.');
     }
     
-    await send.reply('⏳ Setting profile picture...');
+    await send.reply('Setting profile picture...');
     
     try {
       const cacheDir = path.join(__dirname, 'cache');
@@ -56,28 +54,31 @@ module.exports = {
       
       fs.writeFileSync(imagePath, Buffer.from(response.data));
       
-      return new Promise((resolve, reject) => {
+      if (!api.changeAvatar) {
+        try { fs.unlinkSync(imagePath); } catch {}
+        return send.reply('Profile picture change is not supported by this API version.');
+      }
+      
+      return new Promise((resolve) => {
         api.changeAvatar(fs.createReadStream(imagePath), (err) => {
           try {
             if (fs.existsSync(imagePath)) {
               fs.unlinkSync(imagePath);
             }
-          } catch (e) {
-            console.error('[SETPROFILE] Cache cleanup error:', e);
-          }
+          } catch (e) {}
           
           if (err) {
             console.error('[SETPROFILE] changeAvatar error:', err);
-            send.reply('❌ Failed to change profile picture: ' + err.message).then(resolve).catch(reject);
+            send.reply('Failed to change profile picture. Facebook may have blocked this action.').then(resolve);
           } else {
-            send.reply('✅ Profile picture updated successfully!').then(resolve).catch(reject);
+            send.reply('Profile picture updated successfully!').then(resolve);
           }
         });
       });
       
     } catch (error) {
       console.error('[SETPROFILE] Error:', error);
-      return send.reply('❌ Failed to change profile picture: ' + error.message);
+      return send.reply('Failed to change profile picture: ' + error.message);
     }
   }
 };

@@ -24,32 +24,45 @@ module.exports = {
     }
     
     if (args[0]?.toLowerCase() !== 'confirm') {
-      return send.reply(`Are you sure you want to leave ${groupThreads.length} groups?
+      return send.reply(`Are you sure you want to leave groups?
 
 This will make bot leave ALL groups except this one.
 
 Type: outall confirm`);
     }
     
-    await send.reply(`Leaving ${groupThreads.length} groups...`);
+    await send.reply(`Checking and leaving active groups...`);
     
     let left = 0;
+    let alreadyLeft = 0;
     let failed = 0;
+    const botID = api.getCurrentUserID();
     
     for (const thread of groupThreads) {
       try {
-        const botID = api.getCurrentUserID();
+        const info = await api.getThreadInfo(thread.id);
+        
+        if (!info || !info.participantIDs || !info.participantIDs.includes(botID)) {
+          alreadyLeft++;
+          continue;
+        }
+        
         await api.removeUserFromGroup(botID, thread.id);
         left++;
         await new Promise(r => setTimeout(r, 1000));
-      } catch {
-        failed++;
+      } catch (err) {
+        if (err.message && (err.message.includes('not in') || err.message.includes('already left') || err.message.includes('not a participant'))) {
+          alreadyLeft++;
+        } else {
+          failed++;
+        }
       }
     }
     
     return send.reply(`Outall Complete
 ─────────────────
 Left: ${left} groups
+Already Left: ${alreadyLeft}
 Failed: ${failed}
 Remaining in this group only.`);
   }
