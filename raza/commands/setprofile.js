@@ -1,3 +1,4 @@
+
 const axios = require('axios');
 const fs = require('fs-extra');
 const path = require('path');
@@ -32,7 +33,11 @@ module.exports = {
     
     const imageUrl = attachment.url;
     
-    await send.reply('Setting profile picture...');
+    if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
+      return send.reply('❌ Invalid image URL. Please try replying to a different image.');
+    }
+    
+    await send.reply('⏳ Setting profile picture...');
     
     try {
       const cacheDir = path.join(__dirname, 'cache');
@@ -40,19 +45,37 @@ module.exports = {
       
       const imagePath = path.join(cacheDir, `profile_${Date.now()}.jpg`);
       
-      const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+      const response = await axios.get(imageUrl, { 
+        responseType: 'arraybuffer',
+        timeout: 30000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      
       fs.writeFileSync(imagePath, Buffer.from(response.data));
       
-      await api.changeAvatar(fs.createReadStream(imagePath));
+      await api.changeAvatar(fs.createReadStream(imagePath), (err) => {
+        if (err) {
+          console.error('[SETPROFILE] changeAvatar error:', err);
+        }
+      });
       
       setTimeout(() => {
-        try { fs.unlinkSync(imagePath); } catch {}
+        try { 
+          if (fs.existsSync(imagePath)) {
+            fs.unlinkSync(imagePath);
+          }
+        } catch (e) {
+          console.error('[SETPROFILE] Cache cleanup error:', e);
+        }
       }, 5000);
       
-      return send.reply('Profile picture updated successfully!');
+      return send.reply('✅ Profile picture updated successfully!');
       
     } catch (error) {
-      return send.reply('Failed to change profile picture: ' + error.message);
+      console.error('[SETPROFILE] Error:', error);
+      return send.reply('❌ Failed to change profile picture: ' + error.message);
     }
   }
 };
