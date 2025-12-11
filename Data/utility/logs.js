@@ -25,7 +25,7 @@ const writeLog = (type, message) => {
 const printBanner = () => {
   console.log('');
   console.log(chalk.blue('╔═══════════════════════════════════════════════════════╗'));
-  console.log(chalk.blue('║') + chalk.yellow.bold('              ') + chalk.blue.bold('R') + chalk.yellow.bold('D') + chalk.blue.bold('X') + chalk.blue.bold('-') + chalk.yellow.bold('B') + chalk.blue.bold('o') + chalk.yellow.bold('T') + chalk.blue.bold('                         ') + chalk.blue('║'));
+  console.log(chalk.blue('║') + chalk.yellow.bold('              ') + chalk.blue.bold('R') + chalk.yellow.bold('D') + chalk.blue.bold('X') + chalk.blue.bold('-') + chalk.yellow.bold('B') + chalk.blue.bold('O') + chalk.yellow.bold('T') + chalk.blue.bold('                         ') + chalk.blue('║'));
   console.log(chalk.blue('╠═══════════════════════════════════════════════════════╣'));
   console.log(chalk.blue('║') + chalk.yellow(' WhatsApp: ') + chalk.blue.bold('+923301068874') + chalk.yellow('                          ') + chalk.blue('║'));
   console.log(chalk.blue('║') + chalk.yellow(' Email: ') + chalk.blue.bold('sardarrdxrdx@gmail.com') + chalk.yellow('          ') + chalk.blue('║'));
